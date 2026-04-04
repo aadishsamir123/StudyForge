@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyForge — AI-Powered Study Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0c0a;
+    --bg2: #131210;
+    --bg3: #1a1815;
+    --bg4: #221f1b;
+    --border: #2e2a24;
+    --amber: #d4a847;
+    --amber-dim: #8a6e2f;
+    --amber-bright: #f0c060;
+    --cream: #e8dfc8;
+    --cream-dim: #a09070;
+    --red: #c0533a;
+    --green: #5a9e6f;
+    --text: #c8bfa8;
+    --text-dim: #6e6456;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+  }
+
+  /* ─── LAYOUT ─── */
+  #app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--amber);
+    letter-spacing: -0.02em;
+  }
+
+  .logo span { color: var(--cream); font-style: italic; }
+
+  .header-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── ONBOARDING SCREENS ─── */
+  .screen {
+    display: none;
+    min-height: calc(100vh - 65px);
+    justify-content: center;
+    align-items: center;
+    padding: 60px 20px;
+  }
+
+  .screen.active { display: flex; }
+
+  .onboard-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 56px 64px;
+    max-width: 600px;
+    width: 100%;
+    animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .onboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber-dim);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .step-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.15;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-style: italic;
+    margin-bottom: 40px;
+    font-size: 1rem;
+  }
+
+  label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber-dim);
+    margin-bottom: 8px;
+    margin-top: 24px;
+  }
+
+  input[type="text"], input[type="number"], textarea, select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--cream);
+    font-family: 'Crimson Pro', serif;
+    font-size: 1.1rem;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: vertical;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--amber-dim);
+    box-shadow: 0 0 0 3px rgba(212,168,71,0.08);
+  }
+
+  input::placeholder, textarea::placeholder { color: var(--text-dim); }
+
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 32px;
+    padding: 13px 28px;
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    font-weight: 500;
+  }
+
+  .btn:hover { background: var(--amber-bright); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid var(--amber-dim);
+  }
+
+  .btn-ghost:hover { background: rgba(212,168,71,0.08); }
+
+  .btn svg { width: 16px; height: 16px; }
+
+  /* ─── UPLOAD ZONE ─── */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--bg3);
+    margin-top: 8px;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--amber-dim);
+    background: rgba(212,168,71,0.04);
+  }
+
+  .upload-zone .icon { font-size: 2rem; margin-bottom: 10px; opacity: 0.5; }
+  .upload-zone p { color: var(--text-dim); font-size: 0.95rem; }
+  .upload-zone input { display: none; }
+
+  .file-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .file-chip {
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 4px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--cream-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .file-chip button {
+    background: none; border: none; color: var(--red); cursor: pointer; font-size: 1rem; line-height: 1;
+  }
+
+  /* ─── MAIN STUDIO ─── */
+  #studio {
+    display: none;
+    flex: 1;
+    height: calc(100vh - 65px);
+  }
+
+  #studio.active { display: grid; grid-template-columns: 280px 1fr 340px; }
+
+  /* Left sidebar */
+  .sidebar-left {
+    border-right: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-section h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  /* Score ring */
+  .score-display {
+    text-align: center;
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ring-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 14px;
+  }
+
+  .ring-container svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+  .ring-bg { fill: none; stroke: var(--bg4); stroke-width: 8; }
+  .ring-fill { fill: none; stroke: var(--amber); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1); }
+  .ring-target { fill: none; stroke: var(--amber-dim); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 4 6; }
+
+  .ring-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--amber);
+    line-height: 1;
+  }
+
+  .ring-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .score-meta {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .score-meta strong { color: var(--amber); font-style: normal; }
+
+  /* Topics list */
+  .topic-list { list-style: none; overflow-y: auto; flex: 1; }
+
+  .topic-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(46,42,36,0.6);
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .topic-item:hover { background: rgba(212,168,71,0.04); }
+  .topic-item.active { background: rgba(212,168,71,0.08); border-left: 2px solid var(--amber); }
+
+  .topic-status {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--bg4);
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .topic-status.done { background: var(--green); border-color: var(--green); }
+  .topic-status.progress { background: var(--amber); border-color: var(--amber); }
+
+  .topic-name {
+    font-size: 0.9rem;
+    color: var(--text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topic-weight {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+  }
+
+  /* ─── CENTER PANEL ─── */
+  .center-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+
+  .tab-btn {
+    padding: 14px 24px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .tab-btn:hover { color: var(--cream); }
+  .tab-btn.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+  .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .tab-content.active { display: flex; }
+
+  /* Study Content */
+  .study-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px;
+    max-width: 780px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .content-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .loader {
+    width: 40px; height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  .study-topic-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .topic-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .study-topic-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--cream);
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .topic-meta {
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+
+  .study-body h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--cream);
+    margin: 28px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .study-body p { margin-bottom: 14px; color: var(--text); line-height: 1.75; }
+
+  .study-body ul, .study-body ol {
+    padding-left: 24px;
+    margin-bottom: 14px;
+  }
+
+  .study-body li { margin-bottom: 6px; line-height: 1.65; }
+
+  .key-point {
+    background: rgba(212,168,71,0.06);
+    border-left: 3px solid var(--amber);
+    padding: 14px 18px;
+    margin: 20px 0;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .key-point .kp-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+
+  .exam-tip {
+    background: rgba(192,83,58,0.07);
+    border-left: 3px solid var(--red);
+    padding: 14px 18px;
+    margin: 20px 0;
+    border-radius: 0 3px 3px 0;
+    font-size: 0.95rem;
+  }
+
+  .exam-tip .tip-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 6px;
+  }
+
+  /* Quiz */
+  .quiz-container { padding: 40px; overflow-y: auto; flex: 1; }
+
+  .quiz-q {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    margin-bottom: 20px;
+    animation: cardIn 0.4s ease;
+  }
+
+  .quiz-q-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .quiz-q p { color: var(--cream); font-size: 1.05rem; margin-bottom: 18px; }
+
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+
+  .quiz-opt {
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 11px 16px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 1rem;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .quiz-opt:hover { border-color: var(--amber-dim); background: rgba(212,168,71,0.05); }
+  .quiz-opt.correct { border-color: var(--green); background: rgba(90,158,111,0.1); color: var(--cream); }
+  .quiz-opt.wrong { border-color: var(--red); background: rgba(192,83,58,0.1); }
+
+  .quiz-explain {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-radius: 3px;
+    font-size: 0.95rem;
+    color: var(--text);
+    border: 1px solid var(--border);
+    display: none;
+  }
+
+  .quiz-explain.show { display: block; }
+
+  .quiz-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 40px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+
+  .quiz-score-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--amber);
+    letter-spacing: 0.1em;
+  }
+
+  /* Podcast player */
+  .podcast-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .podcast-header {
+    padding: 28px 40px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg2);
+  }
+
+  .podcast-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--cream);
+    margin-bottom: 6px;
+  }
+
+  .podcast-sub { font-size: 0.88rem; color: var(--text-dim); font-style: italic; }
+
+  .podcast-waveform {
+    height: 60px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin: 16px 0;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 2px;
+  }
+
+  .wave-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--amber-dim);
+    transition: height 0.1s;
+    flex-shrink: 0;
+  }
+
+  .wave-bar.active { background: var(--amber); }
+
+  .podcast-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+  }
+
+  .ctrl-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    transition: border-color 0.15s, color 0.15s;
+    font-size: 1rem;
+  }
+
+  .ctrl-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+  .ctrl-btn.play-btn {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: var(--bg);
+    width: 48px; height: 48px;
+    font-size: 1.2rem;
+  }
+
+  .ctrl-btn.play-btn:hover { background: var(--amber-bright); }
+
+  .speed-select {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--cream);
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .progress-bar-wrap {
+    background: var(--bg4);
+    border-radius: 2px;
+    height: 4px;
+    cursor: pointer;
+    position: relative;
+    margin-top: 16px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.5s linear;
+  }
+
+  .podcast-transcript {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 40px;
+  }
+
+  .transcript-line {
+    padding: 10px 14px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    transition: background 0.3s;
+  }
+
+  .transcript-line.host-a {
+    border-left: 2px solid var(--amber);
+  }
+
+  .transcript-line.host-b {
+    border-left: 2px solid var(--amber-dim);
+  }
+
+  .transcript-line.speaking { background: rgba(212,168,71,0.07); }
+
+  .host-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+
+  .host-b .host-name { color: var(--amber-dim); }
+
+  .podcast-gen-btn {
+    margin: 20px 40px;
+    flex-shrink: 0;
+  }
+
+  /* ─── RIGHT SIDEBAR — CHAT ─── */
+  .sidebar-right {
+    border-left: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .ai-avatar {
+    width: 32px; height: 32px;
+    background: radial-gradient(circle at 40% 40%, var(--amber), var(--amber-dim));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .chat-title { font-size: 0.95rem; color: var(--cream); }
+  .chat-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .msg {
+    max-width: 100%;
+    padding: 12px 14px;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    animation: msgIn 0.3s ease;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.ai {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--amber-dim);
+    color: var(--text);
+    align-self: flex-start;
+  }
+
+  .msg.user {
+    background: rgba(212,168,71,0.1);
+    border: 1px solid rgba(212,168,71,0.2);
+    color: var(--cream);
+    align-self: flex-end;
+  }
+
+  .msg.ai .msg-sender {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 5px;
+  }
+
+  .typing-indicator {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--amber-dim);
+    border-radius: 3px;
+    width: fit-content;
+  }
+
+  .typing-indicator.show { display: flex; }
+  .dot { width: 5px; height: 5px; background: var(--amber); border-radius: 50%; animation: dotBounce 1.2s ease-in-out infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  .chat-input-area {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--cream);
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    outline: none;
+    resize: none;
+    height: 72px;
+    transition: border-color 0.2s;
+  }
+
+  .chat-input:focus { border-color: var(--amber-dim); }
+
+  .send-btn {
+    background: var(--amber);
+    border: none;
+    border-radius: 3px;
+    color: var(--bg);
+    cursor: pointer;
+    padding: 10px 14px;
+    transition: background 0.2s;
+    align-self: flex-end;
+    font-size: 1.1rem;
+  }
+
+  .send-btn:hover { background: var(--amber-bright); }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--amber-dim); }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 1100px) {
+    #studio.active { grid-template-columns: 220px 1fr 300px; }
+  }
+
+  @media (max-width: 850px) {
+    #studio.active { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+    .sidebar-left, .sidebar-right { display: none; }
+    .onboard-card { padding: 36px 28px; }
+    h1 { font-size: 1.8rem; }
+  }
+
+  /* Markdown in AI responses */
+  .msg strong { color: var(--amber); font-weight: 600; }
+  .msg em { font-style: italic; color: var(--cream); }
+  .msg code {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    background: var(--bg4);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  .welcome-prompt {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .welcome-prompt p { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 8px; }
+  .suggestion-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .chip:hover { border-color: var(--amber-dim); color: var(--cream); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">Study<span>Forge</span></div>
+    <div class="header-status" id="headerStatus">AI-POWERED STUDY ENGINE</div>
+  </header>
+
+  <main>
+    <!-- SCREEN 1: Scores -->
+    <div class="screen active" id="screen1">
+      <div class="onboard-card">
+        <div class="step-label">Step 1 of 4 — Your Goal</div>
+        <h1>Set your target.</h1>
+        <p class="subtitle">Tell us where you are and where you want to be.</p>
+        <div class="score-row">
+          <div>
+            <label>Total marks available</label>
+            <input type="number" id="totalMarks" placeholder="e.g. 100" min="1">
+          </div>
+          <div>
+            <label>Your target mark</label>
+            <input type="number" id="targetMark" placeholder="e.g. 85" min="1">
+          </div>
+        </div>
+        <button class="btn" onclick="goToScreen2()">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: Subject -->
+    <div class="screen" id="screen2">
+      <div class="onboard-card">
+        <div class="step-label">Step 2 of 4 — Your Subject</div>
+        <h1>What are you studying?</h1>
+        <p class="subtitle">Be specific — the more context, the better your study plan.</p>
+        <label>Subject name</label>
+        <input type="text" id="subjectName" placeholder="e.g. Advanced Biology, A-Level History…">
+        <label>Exam type / context (optional)</label>
+        <input type="text" id="examContext" placeholder="e.g. Final exam, mid-term, IGCSE, AP…">
+        <button class="btn" onclick="goToScreen3()">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: Upload -->
+    <div class="screen" id="screen3">
+      <div class="onboard-card" style="max-width:680px">
+        <div class="step-label">Step 3 of 4 — Your Material</div>
+        <h1>Upload your resources.</h1>
+        <p class="subtitle">Notes, textbook excerpts, slides, past papers — anything goes.</p>
+
+        <label>Paste text or notes</label>
+        <textarea id="pastedText" rows="5" placeholder="Paste your notes, textbook passages, or any study material here…"></textarea>
+
+        <label>Or upload files</label>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div class="icon">📎</div>
+          <p>Drop files here or click to upload<br><small>PDF, DOCX, TXT, images supported</small></p>
+          <input type="file" id="fileInput" multiple accept=".txt,.pdf,.doc,.docx,.png,.jpg,.jpeg" onchange="handleFiles(this.files)">
+        </div>
+        <div class="file-chips" id="fileChips"></div>
+
+        <button class="btn" onclick="goToStudio()" style="margin-top:28px">
+          Build my study plan
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STUDIO -->
+    <div id="studio">
+      <!-- Left: Topics + Score -->
+      <div class="sidebar-left">
+        <div class="score-display">
+          <div class="ring-container">
+            <svg viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="52"/>
+              <circle class="ring-target" cx="60" cy="60" r="52" id="ringTarget" stroke-dasharray="0 1000"/>
+              <circle class="ring-fill" cx="60" cy="60" r="52" id="ringFill" stroke-dasharray="0 326.7"/>
+            </svg>
+            <div class="ring-text">
+              <div class="ring-score" id="ringScore">0%</div>
+              <div class="ring-label">Progress</div>
+            </div>
+          </div>
+          <div class="score-meta" id="scoreMeta">Target: <strong id="targetPct">—</strong></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Study Topics</h3>
+        </div>
+        <ul class="topic-list" id="topicList"></ul>
+      </div>
+
+      <!-- Center: Tabs -->
+      <div class="center-panel">
+        <div class="panel-tabs">
+          <button class="tab-btn active" onclick="switchTab('study', this)">📖 Study</button>
+          <button class="tab-btn" onclick="switchTab('quiz', this)">🧠 Quiz</button>
+          <button class="tab-btn" onclick="switchTab('podcast', this)">🎙️ Podcast</button>
+        </div>
+
+        <!-- Study Tab -->
+        <div class="tab-content active" id="tab-study">
+          <div class="study-content" id="studyContent">
+            <div class="content-loading" id="studyLoading">
+              <div class="loader"></div>
+              <div class="loading-text">Analysing your material…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quiz Tab -->
+        <div class="tab-content" id="tab-quiz">
+          <div class="quiz-container" id="quizContainer">
+            <div class="content-loading">
+              <div class="loader"></div>
+              <div class="loading-text">Generating quiz…</div>
+            </div>
+          </div>
+          <div class="quiz-footer">
+            <div class="quiz-score-badge" id="quizScoreBadge">SCORE: 0 / 0</div>
+            <button class="btn" onclick="generateQuiz()">New Quiz</button>
+          </div>
+        </div>
+
+        <!-- Podcast Tab -->
+        <div class="tab-content" id="tab-podcast">
+          <div class="podcast-panel">
+            <div class="podcast-header">
+              <h3 id="podcastTitle">AI Study Podcast</h3>
+              <p class="podcast-sub" id="podcastSub">Two hosts break down your material in a conversational deep dive.</p>
+              <div class="podcast-waveform" id="podcastWaveform"></div>
+              <div class="podcast-controls">
+                <button class="ctrl-btn" onclick="skipBack()">⏮</button>
+                <button class="ctrl-btn play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+                <button class="ctrl-btn" onclick="skipForward()">⏭</button>
+                <div class="progress-bar-wrap" id="progressWrap" style="flex:1" onclick="seekPodcast(event)">
+                  <div class="progress-bar-fill" id="progressFill"></div>
+                </div>
+                <select class="speed-select" id="speedSelect">
+                  <option>0.75×</option>
+                  <option selected>1×</option>
+                  <option>1.25×</option>
+                  <option>1.5×</option>
+                  <option>2×</option>
+                </select>
+              </div>
+            </div>
+            <div class="podcast-transcript" id="podcastTranscript">
+              <div class="content-loading" style="height:200px">
+                <div class="loading-text">Click "Generate Podcast" to start</div>
+              </div>
+            </div>
+            <div class="podcast-gen-btn">
+              <button class="btn" onclick="generatePodcast()" id="podcastGenBtn">
+                🎙️ Generate Podcast on Current Topic
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Chat -->
+      <div class="sidebar-right">
+        <div class="chat-header">
+          <div class="ai-avatar">🔥</div>
+          <div>
+            <div class="chat-title">Forge AI Tutor</div>
+            <div class="chat-status">● Online</div>
+          </div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg ai">
+            <div class="msg-sender">Forge AI</div>
+            <div>Loading your tutor session…</div>
+          </div>
+        </div>
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="chat-input-area">
+          <textarea class="chat-input" id="chatInput" placeholder="Ask anything about your material…" onkeydown="handleChatKey(event)"></textarea>
+          <button class="send-btn" onclick="sendChat()">➤</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+const state = {
+  totalMarks: 0,
+  targetMark: 0,
+  subject: '',
+  examContext: '',
+  material: '',
+  files: [],
+  topics: [],
+  currentTopicIdx: 0,
+  topicsDone: new Set(),
+  quizScore: 0,
+  quizTotal: 0,
+  quizAnswered: new Set(),
+  podcastLines: [],
+  podcastIdx: 0,
+  podcastPlaying: false,
+  podcastTimer: null,
+  chatHistory: [],
+};
+
+// ─── NAVIGATION ─────────────────────────────────────────
+function goToScreen2() {
+  const t = +document.getElementById('totalMarks').value;
+  const m = +document.getElementById('targetMark').value;
+  if (!t || !m) return alert('Please enter both marks.');
+  if (m > t) return alert('Target cannot exceed total marks.');
+  state.totalMarks = t;
+  state.targetMark = m;
+  showScreen('screen2');
+}
+
+function goToScreen3() {
+  const s = document.getElementById('subjectName').value.trim();
+  if (!s) return alert('Please enter a subject.');
+  state.subject = s;
+  state.examContext = document.getElementById('examContext').value.trim();
+  showScreen('screen3');
+}
+
+async function goToStudio() {
+  const pasted = document.getElementById('pastedText').value.trim();
+  const fileContent = await readAllFiles();
+  state.material = [pasted, fileContent].filter(Boolean).join('\n\n');
+  if (!state.material) return alert('Please provide some study material.');
+
+  showScreen(null);
+  document.getElementById('studio').classList.add('active');
+  document.getElementById('headerStatus').textContent =
+    `${state.subject.toUpperCase()} — TARGET: ${state.targetMark}/${state.totalMarks}`;
+
+  updateRing(0);
+  const pct = Math.round((state.targetMark / state.totalMarks) * 100);
+  document.getElementById('targetPct').textContent = `${pct}%`;
+
+  await initStudio();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (id) document.getElementById(id).classList.add('active');
+}
+
+// ─── FILE HANDLING ───────────────────────────────────────
+function handleFiles(files) {
+  Array.from(files).forEach(f => {
+    if (!state.files.find(x => x.name === f.name)) {
+      state.files.push(f);
+      addFileChip(f.name);
+    }
+  });
+}
+
+function addFileChip(name) {
+  const c = document.createElement('div');
+  c.className = 'file-chip';
+  c.innerHTML = `📄 ${name} <button onclick="removeFile('${name}',this.parentElement)">×</button>`;
+  document.getElementById('fileChips').appendChild(c);
+}
+
+function removeFile(name, el) {
+  state.files = state.files.filter(f => f.name !== name);
+  el.remove();
+}
+
+async function readAllFiles() {
+  const texts = await Promise.all(state.files.map(f => new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => res('');
+    r.readAsText(f);
+  })));
+  return texts.join('\n\n');
+}
+
+// Drag-and-drop
+const uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('drag-over'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('drag-over'));
+uz.addEventListener('drop', e => {
+  e.preventDefault(); uz.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+
+// ─── STUDIO INIT ─────────────────────────────────────────
+async function initStudio() {
+  // Generate topics from material
+  await generateTopics();
+  initChatWelcome();
+  await loadTopic(0);
+}
+
+async function generateTopics() {
+  const pct = Math.round((state.targetMark / state.totalMarks) * 100);
+  const resp = await callClaude(`You are a study planner AI. The student is studying "${state.subject}"${state.examContext ? ` (${state.examContext})` : ''}. They want to score ${state.targetMark}/${state.totalMarks} (${pct}%).
+
+Based on this material, extract and list the key study topics. Return ONLY a JSON array of objects with this exact structure:
+[{"title":"Topic Name","weight":15,"priority":"high"},...]
+
+"weight" is estimated % of total marks this topic is worth (all weights should sum to ~100).
+"priority" is "high", "medium", or "low" based on how critical it is to reach the target score.
+Generate 5-8 topics. Return only valid JSON, no markdown.
+
+MATERIAL:
+${state.material.slice(0, 3000)}`);
+
+  try {
+    const clean = resp.replace(/```json?|```/g, '').trim();
+    state.topics = JSON.parse(clean);
+  } catch {
+    state.topics = [
+      { title: 'Core Concepts', weight: 30, priority: 'high' },
+      { title: 'Key Definitions', weight: 25, priority: 'high' },
+      { title: 'Applications & Examples', weight: 20, priority: 'medium' },
+      { title: 'Analysis & Evaluation', weight: 15, priority: 'medium' },
+      { title: 'Common Exam Questions', weight: 10, priority: 'low' },
+    ];
+  }
+
+  renderTopicList();
+}
+
+function renderTopicList() {
+  const ul = document.getElementById('topicList');
+  ul.innerHTML = '';
+  state.topics.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.className = 'topic-item' + (i === 0 ? ' active' : '');
+    li.id = `topic-${i}`;
+    li.onclick = () => loadTopic(i);
+    const isDone = state.topicsDone.has(i);
+    li.innerHTML = `
+      <div class="topic-status ${isDone ? 'done' : i === 0 ? 'progress' : ''}"></div>
+      <span class="topic-name">${t.title}</span>
+      <span class="topic-weight">${t.weight}%</span>`;
+    ul.appendChild(li);
+  });
+}
+
+// ─── TOPIC LOADING ───────────────────────────────────────
+async function loadTopic(idx) {
+  state.currentTopicIdx = idx;
+
+  // Update sidebar
+  document.querySelectorAll('.topic-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+    const dot = el.querySelector('.topic-status');
+    dot.className = 'topic-status' + (state.topicsDone.has(i) ? ' done' : i === idx ? ' progress' : '');
+  });
+
+  // Show study loading
+  const sc = document.getElementById('studyContent');
+  sc.innerHTML = `<div class="content-loading" id="studyLoading"><div class="loader"></div><div class="loading-text">Preparing ${state.topics[idx].title}…</div></div>`;
+
+  const content = await callClaude(`You are an expert tutor for "${state.subject}". Generate rich, exam-focused study notes for the topic: "${state.topics[idx].title}".
+
+The student needs ${state.targetMark}/${state.totalMarks} marks. Focus on what matters most for their target score.
+
+Format your response using this exact HTML structure (no markdown, use HTML tags only):
+<div class="study-body">
+  <h3>Section Title</h3>
+  <p>Content...</p>
+  <div class="key-point"><div class="kp-label">Key Point</div><p>Important concept here.</p></div>
+  <div class="exam-tip"><div class="tip-label">Exam Tip</div><p>What examiners look for.</p></div>
+  <ul><li>Bullet</li></ul>
+</div>
+
+Include 3-5 sections with key points and at least 2 exam tips. Base content on this material:
+${state.material.slice(0, 2500)}
+
+Only return the HTML div, nothing else.`);
+
+  sc.innerHTML = `
+    <div class="study-topic-header">
+      <div class="topic-tag">${state.subject} · ${state.topics[idx].priority.toUpperCase()} PRIORITY · ${state.topics[idx].weight}% of marks</div>
+      <h2>${state.topics[idx].title}</h2>
+      <div class="topic-meta">Estimated reading time: ~${Math.ceil(content.length / 1200)} min</div>
+    </div>
+    ${content}
+    <div style="margin-top:40px;display:flex;gap:12px;">
+      <button class="btn" onclick="markDone(${idx})">✓ Mark as studied</button>
+      ${idx < state.topics.length - 1 ? `<button class="btn btn-ghost" onclick="loadTopic(${idx + 1})">Next topic →</button>` : ''}
+    </div>`;
+
+  // Reset podcast for new topic
+  document.getElementById('podcastTitle').textContent = `${state.topics[idx].title} — Podcast`;
+  document.getElementById('podcastTranscript').innerHTML = `<div class="content-loading" style="height:200px"><div class="loading-text">Click "Generate Podcast" below</div></div>`;
+  state.podcastLines = [];
+  state.podcastIdx = 0;
+  stopPodcast();
+}
+
+function markDone(idx) {
+  state.topicsDone.add(idx);
+  renderTopicList();
+  const pct = Math.round((state.topicsDone.size / state.topics.length) * 100);
+  const targetPct = Math.round((state.targetMark / state.totalMarks) * 100);
+  updateRing(Math.min(pct, targetPct));
+  if (idx < state.topics.length - 1) loadTopic(idx + 1);
+}
+
+// ─── RING ANIMATION ─────────────────────────────────────
+function updateRing(pct) {
+  const circ = 2 * Math.PI * 52;
+  const fill = document.getElementById('ringFill');
+  const target = document.getElementById('ringTarget');
+  const targetPct = Math.round((state.targetMark / state.totalMarks) * 100);
+  fill.setAttribute('stroke-dasharray', `${(pct / 100) * circ} ${circ}`);
+  target.setAttribute('stroke-dasharray', `${(targetPct / 100) * circ} ${circ}`);
+  document.getElementById('ringScore').textContent = `${pct}%`;
+}
+
+// ─── TABS ────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if (name === 'quiz' && document.getElementById('quizContainer').querySelector('.content-loading')) {
+    generateQuiz();
+  }
+}
+
+// ─── QUIZ ────────────────────────────────────────────────
+async function generateQuiz() {
+  const qc = document.getElementById('quizContainer');
+  qc.innerHTML = `<div class="content-loading"><div class="loader"></div><div class="loading-text">Crafting exam questions…</div></div>`;
+  state.quizScore = 0; state.quizTotal = 0; state.quizAnswered = new Set();
+  updateQuizBadge();
+
+  const topic = state.topics[state.currentTopicIdx];
+  const resp = await callClaude(`Generate 5 multiple-choice quiz questions for the topic "${topic.title}" in "${state.subject}".
+These should test understanding at the level needed to achieve ${state.targetMark}/${state.totalMarks}.
+
+Return ONLY a JSON array:
+[{
+  "question": "Question text?",
+  "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+  "correct": 0,
+  "explanation": "Why this is correct and others are wrong."
+}]
+
+Base on this material: ${state.material.slice(0, 2000)}
+Return only valid JSON, no markdown.`);
+
+  let questions;
+  try {
+    questions = JSON.parse(resp.replace(/```json?|```/g, '').trim());
+  } catch {
+    questions = [{
+      question: 'What is the most important concept in this material?',
+      options: ['A) Understanding core principles', 'B) Memorising definitions', 'C) Practising past papers', 'D) All of the above'],
+      correct: 3,
+      explanation: 'A comprehensive approach combining all strategies is most effective.'
+    }];
+  }
+
+  state.quizTotal = questions.length;
+  qc.innerHTML = '';
+  questions.forEach((q, qi) => {
+    const div = document.createElement('div');
+    div.className = 'quiz-q';
+    div.innerHTML = `
+      <div class="quiz-q-label">Question ${qi + 1} of ${questions.length}</div>
+      <p>${q.question}</p>
+      <div class="quiz-options">
+        ${q.options.map((o, oi) => `<button class="quiz-opt" onclick="answerQuiz(${qi},${oi},${q.correct},this,'${escQ(q.explanation)}')">${o}</button>`).join('')}
+      </div>
+      <div class="quiz-explain" id="explain-${qi}">💡 ${q.explanation}</div>`;
+    qc.appendChild(div);
+  });
+}
+
+function answerQuiz(qi, chosen, correct, btn, explanation) {
+  if (state.quizAnswered.has(qi)) return;
+  state.quizAnswered.add(qi);
+  const parent = btn.parentElement;
+  Array.from(parent.children).forEach((b, i) => {
+    b.disabled = true;
+    if (i === correct) b.classList.add('correct');
+    else if (i === chosen) b.classList.add('wrong');
+  });
+  if (chosen === correct) state.quizScore++;
+  document.getElementById(`explain-${qi}`).classList.add('show');
+  updateQuizBadge();
+}
+
+function updateQuizBadge() {
+  document.getElementById('quizScoreBadge').textContent = `SCORE: ${state.quizScore} / ${state.quizAnswered.size}`;
+}
+
+function escQ(s) { return s.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, ' '); }
+
+// ─── PODCAST ─────────────────────────────────────────────
+async function generatePodcast() {
+  const topic = state.topics[state.currentTopicIdx];
+  document.getElementById('podcastGenBtn').disabled = true;
+  document.getElementById('podcastTranscript').innerHTML = `<div class="content-loading" style="height:200px"><div class="loader"></div><div class="loading-text">Scripting your podcast…</div></div>`;
+  stopPodcast();
+
+  const resp = await callClaude(`You are writing a script for an educational podcast called "StudyForge Deep Dive". Two hosts — Alex (enthusiastic, asks questions) and Sam (knowledgeable expert) — discuss the topic "${topic.title}" from "${state.subject}".
+
+Make it conversational, engaging, and educational. Include analogies, examples, and exam-relevant insights.
+Target length: ~10 exchanges each host. The student needs ${state.targetMark}/${state.totalMarks}.
+
+Return ONLY a JSON array:
+[{"host":"Alex","text":"..."},{"host":"Sam","text":"..."},...]
+
+Base content on: ${state.material.slice(0, 2000)}
+Return only valid JSON, no markdown.`);
+
+  try {
+    state.podcastLines = JSON.parse(resp.replace(/```json?|```/g, '').trim());
+  } catch {
+    state.podcastLines = [
+      { host: 'Alex', text: `Welcome to StudyForge! Today we're diving into ${topic.title} for ${state.subject}. Sam, set the scene for us.` },
+      { host: 'Sam', text: `Absolutely! This topic is crucial for hitting that target score. Let me break it down in a way that'll stick with you come exam day...` },
+      { host: 'Alex', text: `I love that. And for students listening — this is the kind of thinking examiners are looking for.` },
+      { host: 'Sam', text: `Exactly. The key insight here is applying these concepts to unseen scenarios. That's where the marks are.` },
+    ];
+  }
+
+  renderPodcastTranscript();
+  buildWaveform();
+  document.getElementById('podcastTitle').textContent = `${topic.title} — Deep Dive`;
+  document.getElementById('podcastSub').textContent = `Hosted by Alex & Sam · ${state.podcastLines.length} segments`;
+  document.getElementById('podcastGenBtn').disabled = false;
+  state.podcastIdx = 0;
+}
+
+function renderPodcastTranscript() {
+  const t = document.getElementById('podcastTranscript');
+  t.innerHTML = '';
+  state.podcastLines.forEach((line, i) => {
+    const d = document.createElement('div');
+    d.className = `transcript-line ${line.host === 'Alex' ? 'host-a' : 'host-b'}`;
+    d.id = `tline-${i}`;
+    d.innerHTML = `<div class="host-name">${line.host}</div>${line.text}`;
+    t.appendChild(d);
+  });
+}
+
+function buildWaveform() {
+  const wf = document.getElementById('podcastWaveform');
+  wf.innerHTML = '';
+  for (let i = 0; i < 70; i++) {
+    const b = document.createElement('div');
+    b.className = 'wave-bar';
+    b.id = `wb-${i}`;
+    b.style.height = (8 + Math.random() * 36) + 'px';
+    wf.appendChild(b);
+  }
+}
+
+function togglePlay() {
+  if (!state.podcastLines.length) return;
+  state.podcastPlaying ? stopPodcast() : startPodcast();
+}
+
+function startPodcast() {
+  state.podcastPlaying = true;
+  document.getElementById('playBtn').textContent = '⏸';
+  animateWave();
+  playNextLine();
+}
+
+function stopPodcast() {
+  state.podcastPlaying = false;
+  document.getElementById('playBtn').textContent = '▶';
+  clearTimeout(state.podcastTimer);
+}
+
+function playNextLine() {
+  if (!state.podcastPlaying || state.podcastIdx >= state.podcastLines.length) {
+    stopPodcast();
+    return;
+  }
+  // Highlight current line
+  document.querySelectorAll('.transcript-line').forEach(el => el.classList.remove('speaking'));
+  const el = document.getElementById(`tline-${state.podcastIdx}`);
+  if (el) {
+    el.classList.add('speaking');
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  const text = state.podcastLines[state.podcastIdx].text;
+  const wordsPerMin = 150 * getSpeed();
+  const delay = (text.split(' ').length / wordsPerMin) * 60 * 1000;
+  updateProgress();
+
+  state.podcastTimer = setTimeout(() => {
+    state.podcastIdx++;
+    playNextLine();
+  }, delay);
+}
+
+function updateProgress() {
+  const pct = state.podcastLines.length ? (state.podcastIdx / state.podcastLines.length) * 100 : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function getSpeed() {
+  const s = document.getElementById('speedSelect').value;
+  return parseFloat(s);
+}
+
+function skipBack() {
+  state.podcastIdx = Math.max(0, state.podcastIdx - 2);
+  if (state.podcastPlaying) { clearTimeout(state.podcastTimer); playNextLine(); }
+}
+
+function skipForward() {
+  state.podcastIdx = Math.min(state.podcastLines.length - 1, state.podcastIdx + 2);
+  if (state.podcastPlaying) { clearTimeout(state.podcastTimer); playNextLine(); }
+}
+
+function seekPodcast(e) {
+  if (!state.podcastLines.length) return;
+  const rect = document.getElementById('progressWrap').getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  state.podcastIdx = Math.floor(pct * state.podcastLines.length);
+  updateProgress();
+  if (state.podcastPlaying) { clearTimeout(state.podcastTimer); playNextLine(); }
+}
+
+function animateWave() {
+  if (!state.podcastPlaying) return;
+  const bars = document.querySelectorAll('.wave-bar');
+  bars.forEach((b, i) => {
+    b.classList.toggle('active', Math.random() > 0.4);
+    b.style.height = (6 + Math.random() * 40) + 'px';
+  });
+  setTimeout(animateWave, 120);
+}
+
+// ─── CHAT ────────────────────────────────────────────────
+function initChatWelcome() {
+  const topic = state.topics[0];
+  state.chatHistory = [];
+  const welcomeMsg = `Hello! I'm your AI tutor for **${state.subject}**. 🔥
+
+Your goal is **${state.targetMark}/${state.totalMarks}** — let's get you there.
+
+I've prepared ${state.topics.length} study topics based on your material. I can:
+- Explain any concept in depth
+- Quiz you on specific topics
+- Help you identify weak areas
+- Give exam strategy advice
+
+What would you like to tackle first?`;
+
+  const cm = document.getElementById('chatMessages');
+  cm.innerHTML = '';
+  addMsg('ai', welcomeMsg);
+
+  // Suggestion chips
+  const chips = document.createElement('div');
+  chips.className = 'welcome-prompt';
+  chips.innerHTML = `<p>Quick starts:</p><div class="suggestion-chips">
+    ${state.topics.slice(0, 3).map(t => `<span class="chip" onclick="chipPrompt('Explain ${t.title} in simple terms')">${t.title}</span>`).join('')}
+    <span class="chip" onclick="chipPrompt('What are the most important things to know for ${state.subject}?')">Key priorities</span>
+    <span class="chip" onclick="chipPrompt('Give me exam strategy tips')">Exam strategy</span>
+  </div>`;
+  cm.appendChild(chips);
+}
+
+function chipPrompt(text) {
+  document.getElementById('chatInput').value = text;
+  sendChat();
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  addMsg('user', msg);
+  state.chatHistory.push({ role: 'user', content: msg });
+
+  // Show typing
+  document.getElementById('typingIndicator').classList.add('show');
+  scrollChat();
+
+  const systemPrompt = `You are an expert AI tutor for "${state.subject}"${state.examContext ? ` (${state.examContext})` : ''}. The student's target is ${state.targetMark}/${state.totalMarks}. 
+They are currently studying: "${state.topics[state.currentTopicIdx]?.title}".
+Study material context: ${state.material.slice(0, 1500)}
+Be concise, encouraging, exam-focused. Use **bold** for key terms. Keep responses under 200 words unless asked for more detail.`;
+
+  const messages = [
+    ...state.chatHistory.slice(-8),
+  ];
+
+  const reply = await callClaude(systemPrompt + '\n\nConversation:\n' +
+    messages.map(m => `${m.role === 'user' ? 'Student' : 'Tutor'}: ${m.content}`).join('\n') +
+    '\nTutor:');
+
+  document.getElementById('typingIndicator').classList.remove('show');
+  addMsg('ai', reply);
+  state.chatHistory.push({ role: 'assistant', content: reply });
+  scrollChat();
+}
+
+function addMsg(role, text) {
+  const cm = document.getElementById('chatMessages');
+  const d = document.createElement('div');
+  d.className = `msg ${role}`;
+  const formatted = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+  d.innerHTML = role === 'ai' ? `<div class="msg-sender">Forge AI</div>${formatted}` : formatted;
+  cm.appendChild(d);
+  scrollChat();
+}
+
+function scrollChat() {
+  const cm = document.getElementById('chatMessages');
+  cm.scrollTop = cm.scrollHeight;
+}
+
+// ─── CLAUDE API ─────────────────────────────────────────
+async function callClaude(prompt) {
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    return data.content?.map(c => c.text || '').join('') || '';
+  } catch (err) {
+    console.error(err);
+    return '';
+  }
+}
+</script>
+</body>
+</html>
