@@ -8,7 +8,7 @@ on:
       upstream_repository:
         description: 'Owner/repo of the source repository to sync from'
         required: false
-        default: ''
+        default: 'Nithish2012/StudyForge'
         type: string
       upstream_branch:
         description: 'Source branch to sync from'
