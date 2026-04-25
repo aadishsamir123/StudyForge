@@ -1436,33 +1436,28 @@
       };
 
       // ── API ──────────────────────────────────────────────────
-      async function claude(prompt, tokens) {
+      async function aiRequest(prompt, tokens) {
         tokens = tokens || 1500;
         try {
-          var r = await fetch("https://api.anthropic.com/v1/messages", {
+          var r = await fetch("/api/ai", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "anthropic-version": "2023-06-01",
-              "anthropic-dangerous-direct-browser-access": "true",
             },
             body: JSON.stringify({
-              model: "claude-sonnet-4-20250514",
-              max_tokens: tokens,
-              messages: [{ role: "user", content: prompt }],
+              prompt: prompt,
+              tokens: tokens,
             }),
           });
           if (!r.ok) {
-            var e = await r.json();
+            var e = await r.json().catch(function () {
+              return {};
+            });
             console.error(e);
             return "";
           }
           var d = await r.json();
-          return (d.content || [])
-            .map(function (c) {
-              return c.text || "";
-            })
-            .join("");
+          return d.text || "";
         } catch (err) {
           console.error(err);
           return "";
@@ -1593,7 +1588,7 @@
 
       async function buildTopics() {
         var pct = Math.round((S.targetMark / S.totalMarks) * 100);
-        var resp = await claude(
+        var resp = await aiRequest(
           'You are a study planner. Subject: "' +
             S.subject +
             '"' +
@@ -1692,7 +1687,7 @@
         var t = S.topics[idx];
         var mat = S.material.slice(0, 3000);
 
-        var notesP = claude(
+        var notesP = aiRequest(
           'You are an expert tutor for "' +
             S.subject +
             '". Write detailed exam-focused study notes for topic: "' +
@@ -1707,7 +1702,7 @@
           2000,
         );
 
-        var cardsP = claude(
+        var cardsP = aiRequest(
           'Create 8 exam-focused flashcards for "' +
             t.title +
             '" in "' +
@@ -1721,7 +1716,7 @@
           1000,
         );
 
-        var quizP = claude(
+        var quizP = aiRequest(
           'Create 5 multiple-choice questions for "' +
             t.title +
             '" in "' +
@@ -1932,7 +1927,7 @@
           '<div class="cload"><div class="spin"></div><div class="ltxt">Generating new questions…</div></div>';
         var t = S.topics[S.idx];
         var mat = S.material.slice(0, 3000);
-        var resp = await claude(
+        var resp = await aiRequest(
           'Create 5 multiple-choice questions for "' +
             t.title +
             '" in "' +
@@ -1993,7 +1988,7 @@
           '<div class="cload" style="height:180px"><div class="spin"></div><div class="ltxt">Writing podcast script…</div></div>';
         stopPod();
 
-        var resp = await claude(
+        var resp = await aiRequest(
           'Write an educational podcast script "StudyForge Deep Dive". Two hosts discuss "' +
             t.title +
             '" from "' +
@@ -2340,7 +2335,7 @@
             return (m.role === "user" ? "Student" : "Tutor") + ": " + m.content;
           })
           .join("\n");
-        var reply = await claude(
+        var reply = await aiRequest(
           sys + "\n\nConversation:\n" + conv + "\nTutor:",
           700,
         );
