@@ -1,17 +1,53 @@
 name: Sync Upstream
+
 on:
   schedule:
-    - cron: '0 * * * *' # Runs hourly.
-  workflow_dispatch: # Allows manual triggering
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      upstream_repository:
+        description: 'Owner/repo of the source repository to sync from'
+        required: false
+        default: 'Nithish2012/StudyForge'
+        type: string
+      upstream_branch:
+        description: 'Source branch to sync from'
+        required: false
+        default: 'main'
+        type: string
+      target_branch:
+        description: 'Target branch in this repository'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      UPSTREAM_REPOSITORY: ${{ github.event.inputs.upstream_repository || '' }}
+      UPSTREAM_BRANCH: ${{ github.event.inputs.upstream_branch || 'main' }}
+      TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'main' }}
     steps:
-      - name: Sync with Upstream
+      - name: Validate upstream configuration
+        run: |
+          if [ -z "$UPSTREAM_REPOSITORY" ]; then
+            echo "No upstream repository configured. Provide workflow_dispatch input upstream_repository to run sync."
+            exit 0
+          fi
+
+          if [ "$UPSTREAM_REPOSITORY" = "${{ github.repository }}" ]; then
+            echo "UPSTREAM_REPOSITORY cannot be the same as this repository (${{ github.repository }})."
+            exit 1
+          fi
+
+      - name: Sync with upstream
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
         with:
-          upstream_repository: Nithish2012/StudyForge
-          upstream_branch: main
-          target_branch: main
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          upstream_sync_repo: ${{ env.UPSTREAM_REPOSITORY }}
+          upstream_sync_branch: ${{ env.UPSTREAM_BRANCH }}
+          target_sync_branch: ${{ env.TARGET_BRANCH }}
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
