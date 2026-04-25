@@ -8,6 +8,23 @@
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900&family=DM+Mono:wght@400;500&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function () {
+        if (
+          window.location.origin === "https://nithish2012.github.io" &&
+          window.location.pathname.indexOf("/StudyForge") === 0
+        ) {
+          var nextPath = window.location.pathname.replace(/^\/StudyForge/, "");
+          if (!nextPath) nextPath = "/";
+          window.location.replace(
+            "https://nithish-studyforge.vercel.app" +
+              nextPath +
+              window.location.search +
+              window.location.hash,
+          );
+        }
+      })();
+    </script>
     <style>
       :root {
         --bg: #0d0c0a;
@@ -1436,7 +1453,7 @@
       };
 
       // ── API ──────────────────────────────────────────────────
-      var API_BASE = "https://nithish-studyforge-api.vercel.app/api";
+      var API_BASE = "/api";
 
       async function aiRequest(prompt, tokens) {
         tokens = tokens || 1500;
