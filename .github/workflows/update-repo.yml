@@ -1,0 +1,17 @@
+name: Sync Upstream
+on:
+  schedule:
+    - cron: '0 * * * *' # Runs hourly.
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync with Upstream
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
+        with:
+          upstream_repository: Nithish2012/StudyForge
+          upstream_branch: main
+          target_branch: main
+          github_token: ${{ secrets.GITHUB_TOKEN }}
