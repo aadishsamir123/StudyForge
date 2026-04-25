@@ -1436,10 +1436,12 @@
       };
 
       // ── API ──────────────────────────────────────────────────
+      var API_BASE = "https://nithish-studyforge-api.vercel.app/api";
+
       async function aiRequest(prompt, tokens) {
         tokens = tokens || 1500;
         try {
-          var r = await fetch("/api/ai", {
+          var r = await fetch(API_BASE + "/ai", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
